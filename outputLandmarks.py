@@ -101,19 +101,20 @@ while True:
 
 	trackedpoints.append(thesepoints)
 
+	if args.showvideo == True:
+		for i in range(0,shape.num_parts): #There are 68 landmark points on each face
+			cv2.circle(img, (shape.part(i).x, shape.part(i).y), 1, (0,0,255), thickness=1)
+			cv2.rectangle(img, (int(bbox.left()), int(bbox.top())), (int(bbox.right()), int(bbox.bottom())), color = (255,255,255), thickness=1)
 
-	for i in range(0,68): #There are 68 landmark points on each face
-		cv2.circle(img, (shape.part(i).x, shape.part(i).y), 1, (0,0,255), thickness=1)
-	cv2.rectangle(img, (int(bbox.left()), int(bbox.top())), (int(bbox.right()), int(bbox.bottom())), color = (255,255,255), thickness=1)
-	cv2.imshow("image", img) #Display the frame
+		cv2.imshow("image", img) #Display the frame
 
-	if cv2.waitKey(1) & 0xFF == ord('q'): #Exit program when the user presses 'q'
-		break
+		if cv2.waitKey(1) & 0xFF == ord('q'): #Exit program when the user presses 'q'
+			break
 
 
-	# define labels
+	# Define column names and output
 	colnames = ["frame"]
-	for i in range(0,68):
+	for i in range(0,shape.num_parts):
 		colnames.extend(["p"+str(i+1)+"x", "p"+str(i+1)+"y"])
 
 	outdata = pd.DataFrame.from_records(trackedpoints, columns=colnames)
