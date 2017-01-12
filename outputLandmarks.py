@@ -19,6 +19,8 @@ parser.add_argument("--skipms", dest = "skipms", type = int, action = "store")
 
 args = parser.parse_args()
 
+trackedpoints = [] # for our output data
+
 if args.showvideo == True:
     cv2.namedWindow("landmark")
 
@@ -27,6 +29,8 @@ video_capture = cv2.VideoCapture(args.infile)
 if(args.skipframe and args.skipms):
 	print("Cannot skip frames and time")
 	quit()
+
+
 
 
 #rect = dlib.rectangle( left = 290, right = 333, top = 127, bottom = 84)
@@ -89,10 +93,28 @@ while True:
 	print frame
 
 	shape = predictor(gray, bbox) #Get coordinates
-	for i in range(1,68): #There are 68 landmark points on each face
+
+  	thesepoints = [frame]
+	# Extract coordinates of each part
+	for i in range(0, shape.num_parts):
+		thesepoints.extend([shape.part(i).x, shape.part(i).y])
+
+	trackedpoints.append(thesepoints)
+
+
+	for i in range(0,68): #There are 68 landmark points on each face
 		cv2.circle(img, (shape.part(i).x, shape.part(i).y), 1, (0,0,255), thickness=1)
 	cv2.rectangle(img, (int(bbox.left()), int(bbox.top())), (int(bbox.right()), int(bbox.bottom())), color = (255,255,255), thickness=1)
 	cv2.imshow("image", img) #Display the frame
 
 	if cv2.waitKey(1) & 0xFF == ord('q'): #Exit program when the user presses 'q'
 		break
+
+
+	# define labels
+	colnames = ["frame"]
+	for i in range(0,68):
+		colnames.extend(["p"+str(i+1)+"x", "p"+str(i+1)+"y"])
+
+	outdata = pd.DataFrame.from_records(trackedpoints, columns=colnames)
+	outdata.to_csv(args.outfile)
