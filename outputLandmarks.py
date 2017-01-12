@@ -69,53 +69,58 @@ bboxes = pd.read_csv(args.bboxes, skiprows = 1, names=["frame",
 detector = dlib.get_frontal_face_detector() #Face detector
 predictor = dlib.shape_predictor("/usr/share/dlib/shape_predictor_68_face_landmarks.dat")
 
-while True:
-	ret, img = video_capture.read()
+ret, img = video_capture.read()
+while ret:
 	frame = video_capture.get(cv2.CAP_PROP_POS_FRAMES)
 	gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+
 	# This improves contrast, but seems to amplify compression noise
 	#clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
 	#clahe_image = clahe.apply(gray)
 
 	#detections = detector(clahe_image, 1) #Detect the faces in the image
 
-	# Create bounding box rectangle from loaded file
-
-	thisframe = bboxes[bboxes['frame'] == frame].iloc[0]
-	if(thisframe['bbrot'] != 0):
-		print("Bounding box rotation must be 0")
-		quit()
-
-	bbox = dlib.rectangle( left = long(thisframe.bbv1x), \
-	right = long(thisframe.bbv3x), top = long(thisframe.bbv3y), \
-	bottom = long(thisframe.bbv1y))
-
 	print frame
 
-	shape = predictor(gray, bbox) #Get coordinates
+	# Create bounding box rectangle from loaded file
+	testframe = bboxes[bboxes['frame']== frame]
+	if testframe.empty:
+		print("No bbox found for frame" + str(frame))
+	else:
+		thisframe = testframe.iloc[0]
+		if(thisframe['bbrot'] != 0):
+			print("Bounding box rotation must be 0")
+			quit()
 
-  	thesepoints = [frame]
-	# Extract coordinates of each part
-	for i in range(0, shape.num_parts):
-		thesepoints.extend([shape.part(i).x, shape.part(i).y])
+		bbox = dlib.rectangle( left = long(thisframe.bbv1x), \
+		right = long(thisframe.bbv3x), top = long(thisframe.bbv3y), \
+		bottom = long(thisframe.bbv1y))
 
-	trackedpoints.append(thesepoints)
+		shape = predictor(gray, bbox) #Get coordinates
 
-	if args.showvideo == True:
-		for i in range(0,shape.num_parts): #There are 68 landmark points on each face
-			cv2.circle(img, (shape.part(i).x, shape.part(i).y), 1, (0,0,255), thickness=1)
-			cv2.rectangle(img, (int(bbox.left()), int(bbox.top())), (int(bbox.right()), int(bbox.bottom())), color = (255,255,255), thickness=1)
+	  	thesepoints = [frame]
+		# Extract coordinates of each part
+		for i in range(0, shape.num_parts):
+			thesepoints.extend([shape.part(i).x, shape.part(i).y])
 
-		cv2.imshow("image", img) #Display the frame
+		trackedpoints.append(thesepoints)
 
-		if cv2.waitKey(1) & 0xFF == ord('q'): #Exit program when the user presses 'q'
-			break
+		if args.showvideo == True:
+			for i in range(0,shape.num_parts):
+				cv2.circle(img, (shape.part(i).x, shape.part(i).y), 1, (0,0,255), thickness=1)
+				cv2.rectangle(img, (int(bbox.left()), int(bbox.top())), (int(bbox.right()), int(bbox.bottom())), color = (255,255,255), thickness=1)
 
+			cv2.imshow("image", img)
 
-	# Define column names and output
-	colnames = ["frame"]
-	for i in range(0,shape.num_parts):
-		colnames.extend(["p"+str(i+1)+"x", "p"+str(i+1)+"y"])
+			if cv2.waitKey(1) & 0xFF == ord('q'): #Exit program when the user presses 'q'
+				break
+	ret, img = video_capture.read()
 
-	outdata = pd.DataFrame.from_records(trackedpoints, columns=colnames)
-	outdata.to_csv(args.outfile)
+# Define column names and output
+colnames = ["frame"]
+for i in range(0,shape.num_parts):
+	colnames.extend(["p"+str(i+1)+"x", "p"+str(i+1)+"y"])
+
+outdata = pd.DataFrame.from_records(trackedpoints, columns=colnames)
+outdata.to_csv(args.outfile)
