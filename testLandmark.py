@@ -1,3 +1,6 @@
+# Simple test of the landmark detector; use dlib to detect face
+# and get landmark points
+
 #Import required modules
 import cv2
 import dlib
@@ -24,5 +27,3 @@ while True:
 
 	if cv2.waitKey(1) & 0xFF == ord('q'): #Exit program when the user presses 'q'
 		break
-
-
